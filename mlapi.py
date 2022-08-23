@@ -43,7 +43,7 @@ async def upload(file: UploadFile = File(...)):
 
     score, acc = model.evaluate(image,np.array([0]),verbose=0, batch_size=1)
     if(acc >= 0.99):
-        shutil.move("./images/" + file.filename, "images/Car/" + file.filename)
+        # shutil.move("./images/" + file.filename, "images/Car/" + file.filename)
         return {"car": True, "score": score, "accuracy" : acc}
-    shutil.move("./images/" + file.filename, "images/NoCar/" + file.filename)    
+    # shutil.move("./images/" + file.filename, "images/NoCar/" + file.filename)    
     return {"car": False, "score": score, "accuracy" : acc}
