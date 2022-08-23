@@ -14,6 +14,7 @@ from tensorflow import keras
 from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
 from PIL import Image
 import shutil
+import io
 # from starlette.responses import StreamingResponse
 model = keras.models.load_model(".mdl_wts.hdf5")
 
@@ -29,21 +30,22 @@ async def read_item(request: Request):
 
 @app.post("/uploading")
 async def upload(file: UploadFile = File(...)):
+    score = 0
+    acc = 0
+    car = False
     try:
+    
         contents = file.file.read()
-        with open("images/" + file.filename, 'wb') as f:
-            f.write(contents)
+        image = Image.open(io.BytesIO(contents)).resize((400,225), Image.Resampling.NEAREST)
+        image = np.asarray(image).astype('float32') / 255
+        image = expand_dims(image, axis=0) 
+        score, acc = model.evaluate(image,np.array([0]),verbose=0, batch_size=1)
+        print(acc)
+        if(acc >= 0.99):
+            car = True
     except Exception:
         return {"message": "There was an error uploading the file"}
     finally:
         file.file.close()
-
-    image = np.asarray(load_img("images/" + file.filename, target_size=(225, 400))).astype('float32') / 255
-    image = expand_dims(image, axis=0) 
-
-    score, acc = model.evaluate(image,np.array([0]),verbose=0, batch_size=1)
-    if(acc >= 0.99):
-        # shutil.move("./images/" + file.filename, "images/Car/" + file.filename)
-        return {"car": True, "score": score, "accuracy" : acc}
-    # shutil.move("./images/" + file.filename, "images/NoCar/" + file.filename)    
-    return {"car": False, "score": score, "accuracy" : acc}
+        
+    return {"car": car, "score": score, "accuracy" : acc}
