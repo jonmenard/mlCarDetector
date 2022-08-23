@@ -217,11 +217,10 @@ function previewAnduploadImage(image) {
 
 	// upload the image
 	var uploadLocation = '/uploading/';
-    
 	// formData.append('key', 'bb63bee9d9846c8d5b7947bcdb4b3573');
 
 	var ajax = new XMLHttpRequest();
-	ajax.open("POST", uploadLocation, true);
+	ajax.open("POST", uploadLocation, false);
     var isCar = false
 	ajax.onreadystatechange = function(e) {
 		if (ajax.readyState === 4) {
@@ -244,16 +243,17 @@ function previewAnduploadImage(image) {
 		}
 	}
 
-	ajax.upload.onprogress = function(e) {
+    overlay.hidden = true
+	// ajax.upload.onprogress = function(e) {
 
-		// change progress
-		// (reduce the width of overlay)
+	// 	// change progress
+	// 	// (reduce the width of overlay)
 
-		var perc = (e.loaded / e.total * 100) || 100,
-			width = 100 - perc;
+	// 	var perc = (e.loaded / e.total * 100) || 100,
+	// 		width = 100 - perc;
 
-		overlay.style.width = width;
-	}
+	// 	overlay.style.width = width;
+	// }
 
 	ajax.send(formData);
 
