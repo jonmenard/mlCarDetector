@@ -1,0 +1,262 @@
+<html>
+    <head>
+        <meta name="author" content="Jon Menard">
+        <meta charset="utf-8">
+        <meta name="description" content="A simple machine learning project to detect if a car is present in an image">
+        <!-- <meta property="og:image" content="./logo.png"> -->
+        <meta property="og:description" content="A simple machine learning project to detect if a car is present in an image">
+        <meta property="og:title" content="ML Car Detector">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <title>Machine Learning: Car Detector</title>
+        <link href="{{ url_for('static', path='semantic.css') }}" rel="stylesheet">
+        <link href="{{ url_for('static', path='styles.css') }}" rel="stylesheet">
+    </head>
+<body>
+    <header>
+        <div class="ui massive inverted menu">
+        </div>
+        <div class="ui centered grid container">
+            <div class="row"></div>
+            <h1 class="ui icon header">
+                <a>Detect A Car With Machine Learning</a>
+            </h1>
+        </div>
+        <br>
+        <div class="ui internally celled centered grid container">
+            <div class="ui divider" style="width: 500px"></div>
+        </div>
+    </header>
+    <main>
+        <div id="contentContainer" class="ui centered grid container">
+            <div class="row ">
+                <div class="ui raised massive segments ">
+                    <div id="formContainer" class="ui massive black segment">
+                        <form class="ui massive form" action = "/uploadfile" method="post" id="userLoginForm">
+                            <h2 class="ui dividing header">Upload Images to Analyze</h2>
+                            <div class="ui icon input">
+                                <div id="drop-region">
+                                    <div class="drop-message">
+                                        Drag & Drop Images or Click to Upload
+                                    </div>
+                                    <div id="image-preview"></div>
+                                </div>  
+                            </div> 
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+<script>
+
+var dropRegion = document.getElementById("drop-region");
+var formContainer = document.getElementById("formContainer");
+var imagePreviewRegion = document.getElementById("image-preview");
+var imageForm = document.getElementById("userLoginForm");
+
+var fakeInput = document.createElement("input");
+fakeInput.type = "file";
+fakeInput.accept = "image/*";
+fakeInput.multiple = true;
+
+dropRegion.addEventListener('click', function() {
+	fakeInput.click();
+});
+
+imageForm.addEventListener('submit', function(evt) {
+        preventDefault(evt);
+        // window.history.back();
+});
+
+
+fakeInput.addEventListener("change", function() {
+	var files = fakeInput.files;
+	handleFiles(files);
+});
+
+function preventDefault(e) {
+	e.preventDefault();
+  	e.stopPropagation();
+}
+
+// dropRegion.addEventListener('dragenter', preventDefault, false)
+// dropRegion.addEventListener('dragleave', preventDefault, false)
+// dropRegion.addEventListener('dragover', preventDefault, false)
+// dropRegion.addEventListener('drop', preventDefault, false)
+
+
+dropRegion.addEventListener("dragenter", (e) => {
+    e.preventDefault()
+    dropRegion.classList.add("hover")
+});
+
+dropRegion.addEventListener("dragover", (e) => {
+    e.preventDefault()
+    dropRegion.classList.add("hover")
+});
+
+dropRegion.addEventListener("dragleave", (e) => {
+    e.preventDefault()
+    dropRegion.classList.remove("hover")
+}); 
+
+dropRegion.addEventListener("drop", (e) => {
+    e.preventDefault()
+    dropRegion.classList.remove("hover")
+}); 
+
+
+function handleDrop(e) {
+	var dt = e.dataTransfer
+	var files = dt.files;
+
+	if (files.length) {
+		handleFiles(files);
+	} else {
+		// check for img
+		var html = dt.getData('text/html')
+	    var match = html && /\bsrc="?([^"\s]+)"?\s*/.exec(html)
+	    var url = match && match[1]
+
+	    if (url) {
+	        uploadImageFromURL(url);
+	        return;
+	    }
+	}
+
+
+	function uploadImageFromURL(url) {
+		var img = new Image;
+        var c = document.createElement("canvas");
+        var ctx = c.getContext("2d");
+
+        img.onload = function() {
+            c.width = this.naturalWidth;     // update canvas size to match image
+            c.height = this.naturalHeight;
+            ctx.drawImage(this, 0, 0);       // draw in image
+            c.toBlob(function(blob) {        // get content as PNG blob
+            	// call our main function
+                handleFiles( [blob] );
+            }, "image/png");
+        };
+        img.onerror = function() {
+            alert("Error in uploading");
+        }
+        img.crossOrigin = "";              // if from different origin
+        img.src = url;
+	}
+}
+
+dropRegion.addEventListener('drop', handleDrop, false);
+
+
+function handleFiles(files) {
+	for (var i = 0, len = files.length; i < len; i++) {
+		if (validateImage(files[i]))
+			previewAnduploadImage(files[i]);
+	}
+}
+
+function validateImage(image) {
+	// check the type
+	var validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+	if (validTypes.indexOf( image.type ) === -1) {
+		alert("Invalid File Type");
+		return false;
+	}
+
+	// check the size
+	var maxSizeInBytes = 10e6; // 10MB
+	if (image.size > maxSizeInBytes) {
+		alert("File too large");
+		return false;
+	}
+
+	return true;
+
+}
+
+function previewAnduploadImage(image) {
+
+	// container
+	var imgView = document.createElement("div");
+
+    var imgResult= document.createElement("div");
+    imgResult.className = "imgResult";
+    
+
+    imgView.id = image.name;
+	imgView.className = "image-view";
+    
+	imagePreviewRegion.appendChild(imgView);
+
+	// previewing image
+	var img = document.createElement("img");
+	imgView.appendChild(img);
+    imgView.appendChild(imgResult)
+
+	// progress overlay
+	var overlay = document.createElement("div");
+	overlay.className = "overlay";
+	imgView.appendChild(overlay);
+
+
+	// read the image...
+	var reader = new FileReader();
+	reader.onload = function(e) {
+		img.src = e.target.result;
+	}
+    
+	reader.readAsDataURL(image);
+
+	// create FormData
+	var formData = new FormData();
+	formData.append('file', image);
+
+	// upload the image
+	var uploadLocation = 'http://localhost:8000/uploading/';
+	// formData.append('key', 'bb63bee9d9846c8d5b7947bcdb4b3573');
+
+	var ajax = new XMLHttpRequest();
+	ajax.open("POST", uploadLocation, true);
+    var isCar = false
+	ajax.onreadystatechange = function(e) {
+		if (ajax.readyState === 4) {
+			if (ajax.status === 200) {
+				console.log("submit")
+                
+                const obj = JSON.parse(ajax.responseText)
+                console.log(obj)
+                if(obj.car){
+                    imgResult.className = "imgResult car"
+                    imgResult.innerHTML = "Car"
+                }else{
+                    imgResult.className = "imgResult no-car";
+                    imgResult.innerHTML = "No Car"
+                }
+                // isCar = (xhr.responseText);
+			} else {
+				console.log("submit error")
+			}
+		}
+	}
+
+	ajax.upload.onprogress = function(e) {
+
+		// change progress
+		// (reduce the width of overlay)
+
+		var perc = (e.loaded / e.total * 100) || 100,
+			width = 100 - perc;
+
+		overlay.style.width = width;
+	}
+
+	ajax.send(formData);
+
+}
+</script>
+</body>
+</html>
