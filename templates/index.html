@@ -216,7 +216,8 @@ function previewAnduploadImage(image) {
 	formData.append('file', image);
 
 	// upload the image
-	var uploadLocation = 'http://localhost:8000/uploading/';
+	var uploadLocation = '/uploading/';
+    
 	// formData.append('key', 'bb63bee9d9846c8d5b7947bcdb4b3573');
 
 	var ajax = new XMLHttpRequest();
