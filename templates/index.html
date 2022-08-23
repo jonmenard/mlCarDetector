@@ -216,13 +216,14 @@ function previewAnduploadImage(image) {
 	formData.append('file', image);
 
 	// upload the image
-	var uploadLocation = '/uploading/';
+	var uploadLocation = '/uploading';
 	// formData.append('key', 'bb63bee9d9846c8d5b7947bcdb4b3573');
 
-	var ajax = new XMLHttpRequest();
-	ajax.open("POST", uploadLocation, false);
+	const ajax = new XMLHttpRequest();
+	ajax.open("POST", uploadLocation, true);
+    ajax.timeout = 30000
     var isCar = false
-	ajax.onreadystatechange = function(e) {
+	ajax.onload  = function(e) {
 		if (ajax.readyState === 4) {
 			if (ajax.status === 200) {
 				console.log("submit")
@@ -243,17 +244,20 @@ function previewAnduploadImage(image) {
 		}
 	}
 
-    overlay.hidden = true
-	// ajax.upload.onprogress = function(e) {
+    // ajax.onload = () => {
+    //     console.log('DONE', ajax.readyState); // readyState will be 4
+    // };
 
-	// 	// change progress
-	// 	// (reduce the width of overlay)
+	ajax.upload.onprogress = function(e) {
 
-	// 	var perc = (e.loaded / e.total * 100) || 100,
-	// 		width = 100 - perc;
+		// change progress
+		// (reduce the width of overlay)
 
-	// 	overlay.style.width = width;
-	// }
+		var perc = (e.loaded / e.total * 100) || 100,
+			width = 100 - perc;
+
+		overlay.style.width = width;
+	}
 
 	ajax.send(formData);
 
