@@ -63,9 +63,9 @@ async def upload(file: UploadFile = File(...)):
     # except Exception:
     file.file.close()
 
-    num1 = random.randint(0, 9)
-    num2 = random.randint(0, 9)
-    image.save("images/saved/" + str(num1) + str(num2) + "_" + file.filename)
+    # num1 = random.randint(0, 9)
+    # num2 = random.randint(0, 9)
+    # image.save("images/saved/" + str(num1) + str(num2) + "_" + file.filename)
 
     if(score[0] < 0.50):
         car = True
