@@ -16,6 +16,9 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, i
 from PIL import Image
 import shutil
 import io
+import random
+import os
+import uvicorn
 # from starlette.responses import StreamingResponse
 model = keras.models.load_model(".mdl_wts.hdf5")
 
@@ -35,22 +38,41 @@ async def upload(file: UploadFile = File(...)):
     acc = 0
     car = False
     # try:
-    
+    directory = "C:/Users/gasma/Documents/GitHub/SYSC5108/Dataset/Dataset10/trainingData/cars" 
+    filename = file.filename
     contents = file.file.read()
     image = Image.open(io.BytesIO(contents)).resize((400,225), Image.Resampling.LANCZOS)
-    # image.save("images/car/" + str(uuid.uuid4()) + file.filename)
-    image = np.asarray(image).astype('float32') / 255
-    image = expand_dims(image, axis=0)
-    score = model(image) 
-    # print(score)
-    score, acc = model.evaluate(image,np.array([0]),verbose=0, batch_size=1)
-    # print(acc, score)
-    if(acc >= 0.99):
-        # print("car")
-        car = True
+    if not filename.endswith(".jpg"):
+        image = image.convert('RGB')
+        file.filename += ".jpg" 
+
+    
+    # image = load_img(directory +"/" + filename)
+    image1 = np.asarray(image).astype('float32') / 255
+    image1 = expand_dims(image1, axis=0)
+    if(len(image1.shape) < 4):
+        image = image.convert('RGB')
+        image1 = np.asarray(image).astype('float32') / 255
+        image1 = expand_dims(image1, axis=0)
+
+
+    print(image1.shape)
+    score = model(image1, training = False).numpy().flatten()
+    print(score[0])
+    
     # except Exception:
+    file.file.close()
+
+    num1 = random.randint(0, 9)
+    num2 = random.randint(0, 9)
+    image.save("images/saved/" + str(num1) + str(num2) + "_" + file.filename)
+
+    if(score[0] < 0.50):
+        car = True
     # return {"message": "There was an error uploading the file"}
     # finally:
-    file.file.close()
-        
-    return {"car": car, "score": score, "accuracy" : acc}
+    
+    return {"car": car, "score": float(score[0]), "accuracy" : acc}
+
+if __name__=="__main__":
+    uvicorn.run("application:app", reload=True, debug=True, workers=2)
