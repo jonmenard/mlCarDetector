@@ -47,8 +47,8 @@ aws_secret_access_key=AWS_SECRET_ACCESS_KEY
 async def read_item(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.get("/setCar/{filename}")
-async def feedbackCar(filename : str):
+@app.get("/setCar/{status}/{filename}")
+async def feedbackCar(status: str, filename : str):
 
     s3 = session.resource('s3')
 
@@ -58,7 +58,7 @@ async def feedbackCar(filename : str):
     }
     try:
         bucket = s3.Bucket(S3_BUCKET_NAME)
-        bucket.copy(copy_source, "cars/" + filename)
+        bucket.copy(copy_source, status + "/cars/" + filename)
         print(filename, " is set to be a car")
         s3.Object(S3_BUCKET_NAME, "temp/" + filename).delete()
     except Exception as e:
@@ -70,8 +70,8 @@ async def feedbackCar(filename : str):
 
 
 
-@app.get("/setNotCar/{filename}")
-async def feedbackNotCar(filename : str):
+@app.get("/setNotCar/{status}/{filename}")
+async def feedbackNotCar(status: str, filename : str):
     s3 = session.resource('s3')
 
     copy_source = {
@@ -81,7 +81,7 @@ async def feedbackNotCar(filename : str):
 
     bucket = s3.Bucket(S3_BUCKET_NAME)
     try:
-        bucket.copy(copy_source, "notCars/" + filename)
+        bucket.copy(copy_source, status + "/notCars/" + filename)
         print(filename, " is set to be a car")
         s3.Object(S3_BUCKET_NAME, "temp/" + filename).delete()
     except Exception as e:
