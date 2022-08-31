@@ -19,60 +19,135 @@ import io
 import random
 import os
 import uvicorn
+import os, json, boto3
+from urllib.parse import urlparse
+
 # from starlette.responses import StreamingResponse
 model = keras.models.load_model(".mdl_wts.hdf5")
 
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="templates")\
+
+
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+S3_BUCKET_NAME = os.environ.get('S3_BUCKET_NAME')
+
+session = boto3.Session(
+aws_access_key_id=AWS_ACCESS_KEY_ID,
+aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+)
+
+
 
 
 @app.get("/", response_class=HTMLResponse)
 async def read_item(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+@app.get("/setCar/{filename}")
+async def feedbackCar(filename : str):
+
+    s3 = session.resource('s3')
+
+    copy_source = {
+    'Bucket': S3_BUCKET_NAME,
+    'Key': ("temp/" + filename)
+    }
+    try:
+        bucket = s3.Bucket(S3_BUCKET_NAME)
+        bucket.copy(copy_source, "cars/" + filename)
+        print(filename, " is set to be a car")
+        s3.Object(S3_BUCKET_NAME, "temp/" + filename).delete()
+    except Exception as e:
+        print("there was an error")
+    # s3.Object(S3_BUCKET_NAME, "cars/" + filename).copy_from(CopySource=("temp/" + filename))
+    return {"success": True}
+
+
+
+
+
+@app.get("/setNotCar/{filename}")
+async def feedbackNotCar(filename : str):
+    s3 = session.resource('s3')
+
+    copy_source = {
+    'Bucket': S3_BUCKET_NAME,
+    'Key': ("temp/" + filename)
+    }
+
+    bucket = s3.Bucket(S3_BUCKET_NAME)
+    try:
+        bucket.copy(copy_source, "notCars/" + filename)
+        print(filename, " is set to be a car")
+        s3.Object(S3_BUCKET_NAME, "temp/" + filename).delete()
+    except Exception as e:
+         print("there was an error")
+    return {"success": True}
+
+
 @app.post("/uploading")
 async def upload(file: UploadFile = File(...)):
+
+    s3_client = session.client('s3')
+
+    num1 = random.randint(0, 9)
+    num2 = random.randint(0, 9)
+
     score = 0
     acc = 0
     car = False
-    # try:
-    directory = "C:/Users/gasma/Documents/GitHub/SYSC5108/Dataset/Dataset10/trainingData/cars" 
-    filename = file.filename
-    contents = file.file.read()
-    image = Image.open(io.BytesIO(contents)).resize((400,225), Image.Resampling.LANCZOS)
-    if not filename.endswith(".jpg"):
-        image = image.convert('RGB')
-        file.filename += ".jpg" 
-
+    newName =  str(num1) + str(num2) + "_" + str(uuid.uuid4()) + ".jpg"
+    object_name = os.path.basename(newName)
     
-    # image = load_img(directory +"/" + filename)
-    image1 = np.asarray(image).astype('float32') / 255
-    image1 = expand_dims(image1, axis=0)
-    if(len(image1.shape) < 4):
-        image = image.convert('RGB')
+    try:
+    # directory = "C:/Users/gasma/Documents/GitHub/SYSC5108/Dataset/Dataset10/trainingData/cars" 
+        filename = file.filename
+        contents = file.file.read()
+        image = Image.open(io.BytesIO(contents)).resize((400,225), Image.Resampling.LANCZOS)
+        
+        if not filename.endswith(".jpg"): # image is something like png
+            image = image.convert('RGB')
+            file.filename += ".jpg" 
+
         image1 = np.asarray(image).astype('float32') / 255
         image1 = expand_dims(image1, axis=0)
+        
+        if(len(image1.shape) < 4): # if image is grey scale
+            image = image.convert('RGB')
+            image1 = np.asarray(image).astype('float32') / 255
+            image1 = expand_dims(image1, axis=0)
 
+        score = model(image1, training = False).numpy().flatten()
 
-    print(image1.shape)
-    score = model(image1, training = False).numpy().flatten()
-    print(score[0])
+        in_mem_file = io.BytesIO()
+        image.save(in_mem_file, format="JPEG")
+        in_mem_file.seek(0)
+        # image.save(newName)
+
+        response = s3_client.upload_fileobj(in_mem_file , S3_BUCKET_NAME, "temp/" + object_name)
+        print(response)
+    finally: 
+        file.file.close()
+
     
-    # except Exception:
-    file.file.close()
-
-    # num1 = random.randint(0, 9)
-    # num2 = random.randint(0, 9)
-    # image.save("images/saved/" + str(num1) + str(num2) + "_" + file.filename)
+    
 
     if(score[0] < 0.50):
         car = True
     # return {"message": "There was an error uploading the file"}
     # finally:
-    
-    return {"car": car, "score": float(score[0]), "accuracy" : acc}
+
+    confidence = (score[0] - 0.5) / 0.5
+    if(car):
+        print("is car")
+        confidence = (0.5 - score[0]) / 0.5
+    confidence = round(confidence, 2) * 100
+    print(confidence)
+    return {"car": car, "score": float(score[0]), "confidence" : confidence, "filename" : newName}
 
 if __name__=="__main__":
     uvicorn.run("application:app", reload=True, debug=True, workers=2)

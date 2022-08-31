@@ -39,7 +39,35 @@
                                     <div class="drop-message">
                                         Drag & Drop Images or Click to Upload
                                     </div>
-                                    <div id="image-preview"></div>
+                                    <div id="image-preview">
+                                        <!-- <div class = "image-view">  -->
+                                            <!-- <img src="{{ url_for('static', path='22_75844058-fe62-4697-ae4f-ab3886414e49.jpg') }}" alt="Girl in a jacket">
+                                            <div class = "imgResult"> 
+                                            </div>
+                                            
+                                            
+                                            <div class = "overlay">
+                                                
+                                            </div>
+                                            <div class = "feedback">
+                                                
+                                                        <button class="feedbackButton wrong" value="22_75844058-fe62-4697-ae4f-ab3886414e49.jpg">
+                                                            
+                                                                Wrong
+                                                        </button>
+                                                    
+                                                        
+                                                        <button class="feedbackButton correct" value="22_75844058-fe62-4697-ae4f-ab3886414e49.jpg">
+                                                            
+                                                                Correct
+                                                        </button>
+                                                        
+                                                    
+                                                </div>
+                                            </div>     -->
+                                        <!-- </div> -->
+
+                                    </div>
                                 </div>  
                             </div> 
                         </form>
@@ -56,12 +84,71 @@ var formContainer = document.getElementById("formContainer");
 var imagePreviewRegion = document.getElementById("image-preview");
 var imageForm = document.getElementById("userLoginForm");
 
+// var feedbackCar = document.getElementsByClassName("correct");
+// var feedbackNoCar = document.getElementsByClassName("wrong");
+
+// for (var i = 0; i < feedbackCar.length; i++) {
+//     feedbackCar[i].addEventListener('click', function(evt) {
+//         preventDefault(evt);
+//         var uploadLocation = "/setCar/" + evt.target.value;
+//         sendCarData(uploadLocation)
+//     });
+// }
+
+// for (var i = 0; i < feedbackNoCar.length; i++) {
+//     console.log(feedbackNoCar[i])
+//     feedbackNoCar[i].addEventListener('click', function(evt) {
+//         preventDefault(evt);
+//         var uploadLocation = "/setNotCar/" + evt.target.value;
+//         sendCarData(uploadLocation)
+//     });
+// }
+
+function car(button){
+    console.log(button.value)
+}
+
+function noCar(button){
+    console.log(button.value)
+   
+	// upload the image
+	
+	sendCarData()
+	
+}
+
+function sendCarData(uploadLocation){
+    const ajax = new XMLHttpRequest();
+	ajax.open("GET", uploadLocation, true);
+    ajax.timeout = 30000
+    var isCar = false
+	ajax.onload  = function(e) {
+		if (ajax.readyState === 4) {
+			if (ajax.status === 200) {
+                const obj = JSON.parse(ajax.responseText)
+                console.log(obj)
+                
+			} else {
+				console.log("submit error")
+			}
+		}
+	}
+
+
+	ajax.send();
+}
+
+
+
 var fakeInput = document.createElement("input");
 fakeInput.type = "file";
 fakeInput.accept = "image/*";
 fakeInput.multiple = true;
 
-dropRegion.addEventListener('click', function() {
+dropRegion.addEventListener('click', function(evt) {
+    if(evt.target.type =="submit"){
+        return
+    }
 	fakeInput.click();
 });
 
@@ -200,7 +287,18 @@ function previewAnduploadImage(image) {
 	// progress overlay
 	var overlay = document.createElement("div");
 	overlay.className = "overlay";
+
+    var feedback = document.createElement("div");
+	feedback.className = "feedback";
+
+
+    
+    
+
 	imgView.appendChild(overlay);
+    imgView.appendChild(feedback);
+
+
 
 
 	// read the image...
@@ -217,8 +315,7 @@ function previewAnduploadImage(image) {
 
 	// upload the image
 	var uploadLocation = '/uploading';
-	// formData.append('key', 'bb63bee9d9846c8d5b7947bcdb4b3573');
-
+	
 	const ajax = new XMLHttpRequest();
 	ajax.open("POST", uploadLocation, true);
     ajax.timeout = 30000
@@ -230,13 +327,52 @@ function previewAnduploadImage(image) {
                 
                 const obj = JSON.parse(ajax.responseText)
                 console.log(obj)
+                
                 if(obj.car){
                     imgResult.className = "imgResult car"
-                    imgResult.innerHTML = "Car"
+                    imgResult.innerHTML = "Car" 
                 }else{
                     imgResult.className = "imgResult no-car";
                     imgResult.innerHTML = "No Car"
                 }
+
+                feedback.style.width = "100%"
+                feedback.style.height = "15%"
+                feedback.style.top = "85%"
+                var buttonWrong = document.createElement("button");
+                var buttonCorrect = document.createElement("button");
+                buttonCorrect.className = "feedbackButton correct";
+                buttonWrong.className = "feedbackButton wrong";
+                buttonWrong.value = obj.filename
+                buttonCorrect.value = obj.filename
+
+                buttonCorrect.innerHTML = "Correct"
+                buttonWrong.innerHTML = "Wrong"
+
+                buttonWrong.addEventListener('click', function(evt) {
+                    preventDefault(evt);
+                    var parent = evt.target.parentNode 
+                    parent.children[0].style.visibility = 'hidden';
+                    parent.children[1].style.visibility = 'hidden';
+                    parent.style.visibility = 'hidden';
+                    var uploadLocation = "/setNotCar/" + evt.target.value;
+                    sendCarData(uploadLocation)
+                });
+
+                buttonCorrect.addEventListener('click', function(evt) {
+                    preventDefault(evt);
+                    var parent = evt.target.parentNode 
+                    parent.children[0].style.visibility = 'hidden';
+                    parent.children[1].style.visibility = 'hidden';
+                    parent.style.visibility = 'hidden';
+                    var uploadLocation = "/setCar/" + evt.target.value;
+                    sendCarData(uploadLocation)
+                });
+
+                feedback.appendChild(buttonWrong)
+                feedback.appendChild(buttonCorrect)
+
+                imgResult.innerHTML += " (" + obj.confidence + "%)"
                 // isCar = (xhr.responseText);
 			} else {
 				console.log("submit error")
@@ -244,15 +380,9 @@ function previewAnduploadImage(image) {
 		}
 	}
 
-    // ajax.onload = () => {
-    //     console.log('DONE', ajax.readyState); // readyState will be 4
-    // };
+    
 
 	ajax.upload.onprogress = function(e) {
-
-		// change progress
-		// (reduce the width of overlay)
-
 		var perc = (e.loaded / e.total * 100) || 100,
 			width = 100 - perc;
 
