@@ -355,7 +355,10 @@ function previewAnduploadImage(image) {
                     parent.children[0].style.visibility = 'hidden';
                     parent.children[1].style.visibility = 'hidden';
                     parent.style.visibility = 'hidden';
-                    var uploadLocation = "/setNotCar/" + evt.target.value;
+                    var uploadLocation = "/setCar/" + evt.target.value;
+                    if(obj.car){
+                        uploadLocation = "/setNotCar/" + evt.target.value;
+                    }
                     sendCarData(uploadLocation)
                 });
 
@@ -365,7 +368,11 @@ function previewAnduploadImage(image) {
                     parent.children[0].style.visibility = 'hidden';
                     parent.children[1].style.visibility = 'hidden';
                     parent.style.visibility = 'hidden';
-                    var uploadLocation = "/setCar/" + evt.target.value;
+                    var uploadLocation = "/setNotCar/" + evt.target.value;
+                    if(obj.car){
+                        uploadLocation = "/setCar/" + evt.target.value;
+                    }
+                    
                     sendCarData(uploadLocation)
                 });
 
