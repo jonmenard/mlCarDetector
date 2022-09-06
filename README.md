@@ -10,7 +10,8 @@ Implements the model trained using https://github.com/jonmenard/Car-Detection-In
 
 ***Deploy***
 
-https://ml-car-detection.herokuapp.com/
+https://ml-car-detection.herokuapp.com/ <br>
+also deployed on my personal website at: https://jonmenard.github.io/machineLearning.html using Tensorflow.js rather than Heroku with python enviroment
 
 ---
 
